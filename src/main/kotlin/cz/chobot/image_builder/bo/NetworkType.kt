@@ -10,7 +10,7 @@ data class NetworkType(
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         @Column(name = "network_type_id", unique = true, nullable = false)
-        val network_type_id: Int,
+        val network_type_id: Long,
 
         @NotNull
         @Column(name = "name", nullable = false)

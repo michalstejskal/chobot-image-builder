@@ -1,5 +1,6 @@
 package cz.chobot.image_builder.bo
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import javax.persistence.*
 import javax.validation.constraints.NotNull
 import javax.validation.constraints.Size
@@ -23,6 +24,7 @@ data class Network(
         @Column(name = "name", nullable = false)
         val name: String,
 
+        @JsonIgnore
         @NotNull
         @Size(max = 64)
         @Column(name = "tag", nullable = false)
@@ -32,11 +34,16 @@ data class Network(
         @Column(name = "status", nullable = false)
         val status: Int,
 
+        @JsonIgnore
         @NotNull
         @Column(name = "connection_uri", nullable = false)
         val connectionUri: String,
 
+        @JsonIgnore
         @NotNull
         @Column(name = "docker_registry", nullable = false)
-        val dockerRegistry: String
+        val dockerRegistry: String,
+
+        @OneToMany(fetch = FetchType.EAGER, mappedBy = "network", cascade = [CascadeType.ALL])
+        val modules: List<Module>
 )

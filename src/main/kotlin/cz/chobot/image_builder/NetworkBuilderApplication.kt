@@ -4,7 +4,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class NetworkBuilderApplication
+open class NetworkBuilderApplication
 
 fun main(args: Array<String>) {
     runApplication<NetworkBuilderApplication>(*args)
