@@ -5,6 +5,7 @@ import javax.persistence.*
 import javax.validation.constraints.NotNull
 import javax.validation.constraints.Size
 
+
 @Entity
 @Table(name = "module")
 data class
@@ -33,11 +34,11 @@ Module(
         @Column(name = "name", nullable = false)
         var name: String,
 
-        @OneToMany(fetch = FetchType.EAGER, mappedBy = "module", cascade = [CascadeType.ALL])
-        var versions: MutableList<ModuleVersion>,
+        @OneToMany(cascade = [CascadeType.REMOVE], fetch = FetchType.EAGER, mappedBy = "module")
+        var versions: MutableSet<ModuleVersion>,
 
         @Size(max = 64)
-        @OneToOne
+        @OneToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
         @JoinColumn(name = "module_version_id")
         var actualVersion: ModuleVersion,
 
@@ -45,24 +46,48 @@ Module(
         @Column(name = "status", nullable = false)
         var status: Int,
 
-        @NotNull
         @Column(name = "repo_url")
         var repositoryUrl: String,
 
+        @JsonIgnore
         @NotNull
-        @Column(name = "connection_uri", nullable = false)
+        @Column(name = "connection_uri")
         var connectionUri: String,
 
+        @JsonIgnore
         @NotNull
-        @Column(name = "docker_registry", nullable = false)
+        @Column(name = "connection_port")
+        var connectionPort: Int,
+
+        @JsonIgnore
+        @Column(name = "docker_registry")
         var dockerRegistry: String,
 
-        @Column(name = "docker_id")
-        var dockerId: String,
+        @JsonIgnore
+        @Column(name = "docker_image_id")
+        var imageId: String,
+
+        @Column(name = "docker_container_id")
+        var containerId: String,
 
 
         @JsonIgnore
         @ManyToOne(cascade = [CascadeType.ALL])
         @JoinColumn(name = "network_id")
         var network: Network
-)
+) {
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || javaClass != other.javaClass) return false
+        val that = other as Module?
+        return id == that?.id && name == that?.name
+    }
+
+    override fun toString(): String {
+        return "$id - $name"
+    }
+}

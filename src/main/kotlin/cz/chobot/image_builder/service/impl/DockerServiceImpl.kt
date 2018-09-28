@@ -23,11 +23,17 @@ class DockerServiceImpl : IDockerService {
      * return: Docker image id
      */
     override fun buildImage(workdir: String, username: String, module: Module): String {
-        val imageName = "$username-${module.name}-${module.actualVersion.name}".replace("\\s".toRegex(), "")
+        var imageName = "$username-${module.name}-${module.actualVersion.name}".replace("\\s".toRegex(), "").toLowerCase()
         logger.info("Creating new docker image for {} module {} with name {} from path {}", username, module.name, imageName, workdir)
+
+
 
         val docker: DockerClient = DefaultDockerClient.fromEnv().build()
         val imageIdFromMessage = AtomicReference<String>()
+
+
+        val param = DockerClient.BuildParam("EXPOSE_PORT", "1512")
+
 
         val returnedImageId = docker.build(
                 Paths.get(workdir), imageName, ProgressHandler { message ->
@@ -35,10 +41,19 @@ class DockerServiceImpl : IDockerService {
             if (imageId != null) {
                 imageIdFromMessage.set(imageId)
             }
-        })
+        }, param)
+
+        logger.info("Docker image created with id {}, creating tag {}", returnedImageId, "$imageName:19")
+        docker.tag("$imageName:latest", "localhost:5000/$imageName:latest")
+
+        logger.info("Docker tag created, pushing image to registry")
+        docker.push("localhost:5000/$imageName:latest")
+        logger.info("Image pushed")
+
+
 
         logger.info("Docker image created with id {}", returnedImageId)
-        return returnedImageId
+        return "localhost:5000/$imageName"
     }
 
     /**
@@ -47,7 +62,7 @@ class DockerServiceImpl : IDockerService {
      */
     override fun deleteImage(module: Module) {
         val docker: DockerClient = DefaultDockerClient.fromEnv().build()
-        docker.removeImage(module.dockerId)
+        docker.removeImage(module.imageId)
     }
 
 

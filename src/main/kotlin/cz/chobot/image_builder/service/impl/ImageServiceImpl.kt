@@ -13,6 +13,7 @@ import org.eclipse.jgit.api.errors.JGitInternalException
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import java.io.File
 import java.nio.file.Files
@@ -21,7 +22,7 @@ import java.util.*
 
 
 @Service
-class ImageServiceImpl : IImageService {
+open class ImageServiceImpl : IImageService {
 
     private val logger = LoggerFactory.getLogger(ImageServiceImpl::class.java)
 
@@ -57,7 +58,8 @@ class ImageServiceImpl : IImageService {
      * user: user
      * return docker id of new image
      */
-    override fun createComposeImage(module: Module, user: User): Optional<String> {
+    @Async
+    override fun createComposeImage(module: Module, user: User) {
         module.name = module.name.replace("\\s".toRegex(), "")
         module.actualVersion.name = module.actualVersion.name.replace("\\s".toRegex(), "")
         val buildPath = "$workingDirectory/${user.login}/${module.name}/${module.actualVersion.name}"
@@ -77,12 +79,11 @@ class ImageServiceImpl : IImageService {
                 gitService.cloneGitRepo(module.repositoryUrl, buildPath) // clone user repository
             }
 
-            module.dockerId = dockerService.buildImage(buildPath, user.login, module) // create docker image from base repo and user codes
+            module.imageId = dockerService.buildImage(buildPath, user.login, module) // create docker image from base repo and user codes
 
             module.actualVersion.module = module
+            module.status = 1
             moduleRepository.save(module)
-
-            return Optional.of(module.dockerId)
         } catch (exc: JGitInternalException) {
             logger.error("Unable to create repository to given path {}", buildPath)
             logger.error("{}", exc.stackTrace)
@@ -96,8 +97,6 @@ class ImageServiceImpl : IImageService {
             logger.error("{}", exc.stackTrace)
             exc.printStackTrace()
         }
-
-        return Optional.empty()
     }
 
 
@@ -109,13 +108,8 @@ class ImageServiceImpl : IImageService {
      * user: user
      * return docker id of new image
      */
+    @Async
     override fun updateComposeImage(module: Module, user: User): Optional<String> {
-        val ver2 = ModuleVersion(1,"verze2", "", module)
-        module.versions.add(ver2)
-        module.code = "ZGVmIGhhbmRsZShkYXRhLCBjb250ZXh0KToKICAgIHByaW50KCJwcmlqYWwgVkVSWkUgMiBQSUNPanNlbSBkYXRhIikK"
-        module.actualVersion = ver2
-
-
         module.actualVersion.name = module.actualVersion.name.replace("\\s".toRegex(), "")
         val buildPath = "$workingDirectory/${user.login}/${module.name}/${module.actualVersion.name}"
         val path = Paths.get(buildPath)
@@ -135,13 +129,14 @@ class ImageServiceImpl : IImageService {
                 gitService.cloneGitRepo(module.repositoryUrl, buildPath) // clone user repository
             }
 
-            module.dockerId = dockerService.buildImage(buildPath, user.login, module) // create docker image from base repo and user codes
+            module.imageId = dockerService.buildImage(buildPath, user.login, module) // create docker image from base repo and user codes
 
             module.actualVersion.module = module
+            module.status = 1
             moduleRepository.save(module)
 
             logger.info("Project on path {} updated", buildPath)
-            return Optional.of(module.dockerId)
+            return Optional.of(module.imageId)
         } catch (exc: JGitInternalException) {
             logger.error("Unable to create repository to given path {}", buildPath)
             logger.error("{}", exc.stackTrace)
@@ -159,7 +154,7 @@ class ImageServiceImpl : IImageService {
         return Optional.empty()
     }
 
-
+    @Async
     override fun deleteComposeImage(module: Module, user: User): Boolean {
         dockerService.deleteImage(module)
         return true
@@ -171,6 +166,7 @@ class ImageServiceImpl : IImageService {
      * user: user
      * return docker id of new image
      */
+    @Async
     override fun restoreComposeImage(module: Module, user: User): Optional<String> {
         module.name = module.name.replace("\\s".toRegex(), "")
         module.actualVersion.name = module.actualVersion.name.replace("\\s".toRegex(), "")
@@ -192,11 +188,11 @@ class ImageServiceImpl : IImageService {
                 gitService.cloneGitRepo(module.repositoryUrl, buildPath) // clone user repository
             }
 
-            module.dockerId = dockerService.buildImage(buildPath, user.login, module) // create docker image from base repo and user codes
-
+            module.imageId = dockerService.buildImage(buildPath, user.login, module) // create docker image from base repo and user codes
+            module.status = 1
             moduleRepository.save(module)
             logger.info("Project on path {} restored", buildPath)
-            return Optional.of(module.dockerId)
+            return Optional.of(module.imageId)
         } catch (exc: JGitInternalException) {
             logger.error("Unable to create repository to given path {}", buildPath)
             logger.error("{}", exc.stackTrace)
