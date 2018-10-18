@@ -29,6 +29,9 @@ Module(
         @Column(name = "code", nullable = false)
         var code: String,
 
+        @Column(name = "api_key", nullable = true)
+        var apiKey: String,
+
         @NotNull
         @Size(max = 64)
         @Column(name = "name", nullable = false)

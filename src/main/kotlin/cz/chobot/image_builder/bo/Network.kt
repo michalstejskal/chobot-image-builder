@@ -53,6 +53,9 @@ data class Network (
         @Column(name = "docker_registry")
         var dockerRegistry: String,
 
+        @Column(name = "api_key", nullable = false)
+        var apiKey: String,
+
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "network", cascade = [CascadeType.REMOVE])
         var modules: MutableSet<Module>,
 

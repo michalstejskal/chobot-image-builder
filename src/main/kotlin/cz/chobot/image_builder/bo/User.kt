@@ -39,6 +39,11 @@ data class User(
         @Column(name = "email")
         val email: String,
 
+        @NotNull
+        @Size(max = 256)
+        @Column(name = "secret")
+        val secret: String,
+
         @JsonIgnore
         @OneToMany(fetch = FetchType.EAGER, mappedBy = "user", cascade = [CascadeType.ALL])
         val networks: MutableSet<Network>
