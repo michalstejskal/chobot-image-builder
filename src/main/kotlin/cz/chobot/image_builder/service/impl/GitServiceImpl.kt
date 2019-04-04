@@ -2,7 +2,6 @@ package cz.chobot.image_builder.service.impl
 
 import cz.chobot.image_builder.bo.Module
 import cz.chobot.image_builder.bo.User
-import cz.chobot.image_builder.enum.ModuleType
 import cz.chobot.image_builder.exception.GitException
 import cz.chobot.image_builder.service.IGitService
 import org.eclipse.jgit.api.CreateBranchCommand
@@ -10,7 +9,10 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.transport.URIish
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.web.client.RestTemplateBuilder
+import org.springframework.context.annotation.Bean
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -20,9 +22,13 @@ import org.springframework.web.client.RestTemplate
 import java.io.File
 import java.util.*
 
+
 //todo add support clone from other places than gitlab
 @Service
 class GitServiceImpl : IGitService {
+
+    @Autowired
+    private lateinit var restTemplate: RestTemplate
 
     private val logger = LoggerFactory.getLogger(GitServiceImpl::class.java)
 
@@ -30,7 +36,7 @@ class GitServiceImpl : IGitService {
     private val gitlabToken: String? = null
 
     @Value("\${gitlab.url}")
-    private val gitlabUrl: String? = null
+    public val gitlabUrl: String? = null
 
     @Value("\${gitlab.push.url}")
     private val gitlabPushUrl: String? = null
@@ -41,7 +47,6 @@ class GitServiceImpl : IGitService {
         headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
         headers.add("PRIVATE-TOKEN", gitlabToken)
         val entity = HttpEntity<String>(headers)
-        val restTemplate = RestTemplate()
         val response = restTemplate.postForEntity("$gitlabUrl/projects?name=$username-$projectName", entity, String::class.java)
         if (response.statusCode != HttpStatus.CREATED) {
             logger.error("Unable to create gitlab project, response from gitlab: {}", response.body)
@@ -154,5 +159,11 @@ class GitServiceImpl : IGitService {
         val file = File("$repoPath/$fileName.py")
         file.printWriter().use { out -> out.println(String(userCode)) }
         logger.info("File with user code created")
+    }
+
+    @Bean
+    fun restTemplate(builder: RestTemplateBuilder): RestTemplate {
+        // Do any additional configuration here
+        return builder.build()
     }
 }

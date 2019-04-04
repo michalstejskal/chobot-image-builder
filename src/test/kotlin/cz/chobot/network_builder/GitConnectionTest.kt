@@ -1,34 +1,29 @@
 package cz.chobot.network_builder
 
-import com.spotify.docker.client.messages.Network
+import cz.chobot.image_builder.NetworkBuilderApplication
 import cz.chobot.image_builder.service.impl.GitServiceImpl
-import org.eclipse.jgit.api.Git
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
-import org.mockito.junit.MockitoJUnitRunner
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.TestPropertySource
-import org.springframework.web.client.RestTemplate
-import java.io.File
-import org.eclipse.jgit.lib.Repository
-import org.junit.Before
 import org.springframework.http.*
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.junit4.SpringRunner
+import org.springframework.web.client.RestTemplate
 
-@SpringBootTest
-@RunWith(MockitoJUnitRunner::class)
-@TestPropertySource(properties = arrayOf(
-        "image.git.repo.uri=https://gitlab.fit.cvut.cz/stejsmi5/chobot_handler_base_image.git",
-        "gitlab.url=https://gitlab.fit.cvut.cz/api/v4/"))
+@ActiveProfiles("test")
+@SpringBootTest(classes = [NetworkBuilderApplication::class], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@RunWith(SpringRunner::class)
 class GitConnectionTest {
     @Mock
     private val restTemplate: RestTemplate? = null
 
     @InjectMocks
-    private val gitService = GitServiceImpl()
+    private lateinit var gitService: GitServiceImpl
 
     @Value("\${gitlab.url}")
     private val gitServerUrl: String? = null
@@ -40,7 +35,7 @@ class GitConnectionTest {
     fun createHeadersEntity() {
         val headers = HttpHeaders()
         headers.contentType = MediaType.APPLICATION_FORM_URLENCODED
-        headers.add("PRIVATE-TOKEN", "some-token")
+        headers.add("PRIVATE-TOKEN", null)
         entity = HttpEntity<String>(headers)
     }
 
@@ -49,10 +44,11 @@ class GitConnectionTest {
         val username = "some_username"
         val projectName = "some_projectname"
 
+
         Mockito.`when`(restTemplate?.postForEntity("$gitServerUrl/projects?name=$username-$projectName", entity, String::class.java))
                 .thenReturn(ResponseEntity("", HttpStatus.CREATED))
 
-
+        org.springframework.test.util.ReflectionTestUtils.setField(gitService, "gitlabUrl", gitServerUrl)
         val newRepoUrl = gitService.createGitlabProject(username, projectName)
         assert(newRepoUrl != null)
         assert(newRepoUrl.contains(username))
