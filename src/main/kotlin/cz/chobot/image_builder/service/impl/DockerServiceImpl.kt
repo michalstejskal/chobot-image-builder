@@ -6,6 +6,7 @@ import com.spotify.docker.client.ProgressHandler
 import cz.chobot.image_builder.bo.Module
 import cz.chobot.image_builder.service.IDockerService
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.nio.file.Paths
 import java.util.concurrent.atomic.AtomicReference
@@ -13,6 +14,10 @@ import java.util.concurrent.atomic.AtomicReference
 @Service
 class DockerServiceImpl : IDockerService {
     private val logger = LoggerFactory.getLogger(DockerServiceImpl::class.java)
+
+
+    @Value("\${docker.registry.url}")
+    private val dockerRegistry: String? = null
 
     /**
      * Create new docker image from Dockerfile in given path
@@ -26,15 +31,10 @@ class DockerServiceImpl : IDockerService {
         var imageName = "$username-${module.name}-${module.actualVersion.name}".replace("\\s".toRegex(), "").toLowerCase()
         logger.info("Creating new docker image for {} module {} with name {} from path {}", username, module.name, imageName, workdir)
 
-
-
         val docker: DockerClient = DefaultDockerClient.fromEnv().build()
         val imageIdFromMessage = AtomicReference<String>()
 
-
         val param = DockerClient.BuildParam("EXPOSE_PORT", "1512")
-
-
         val returnedImageId = docker.build(
                 Paths.get(workdir), imageName, ProgressHandler { message ->
             val imageId = message.buildImageId()
@@ -44,16 +44,16 @@ class DockerServiceImpl : IDockerService {
         }, param)
 
         logger.info("Docker image created with id {}, creating tag {}", returnedImageId, "$imageName:19")
-        docker.tag("$imageName:latest", "localhost:5000/$imageName:latest")
+        docker.tag("$imageName:latest", "$dockerRegistry/$imageName:latest")
 
         logger.info("Docker tag created, pushing image to registry")
-        docker.push("localhost:5000/$imageName:latest")
+        docker.push("$dockerRegistry/$imageName:latest")
         logger.info("Image pushed")
 
 
 
         logger.info("Docker image created with id {}", returnedImageId)
-        return "localhost:5000/$imageName"
+        return "$dockerRegistry/$imageName"
     }
 
     /**

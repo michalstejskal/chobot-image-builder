@@ -23,7 +23,6 @@ import java.io.File
 import java.util.*
 
 
-//todo add support clone from other places than gitlab
 @Service
 class GitServiceImpl : IGitService {
 
